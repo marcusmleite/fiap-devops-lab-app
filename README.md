@@ -392,7 +392,7 @@ python -m venv .venv
 
 ```bash
 python3 -m venv .venv
-source .venv/bin/activate
+.venv\Scripts\activate
 ```
 
 Após a ativação, o terminal poderá apresentar:
@@ -499,7 +499,7 @@ DATABASE=/tmp/fiap.db python app.py
 Se a variável não for informada, a aplicação utiliza um arquivo temporário chamado:
 
 ```text
-fiap_devops_lab.db
+python -c "import app; print(app.DB_PATH)"
 ```
 
 ---
