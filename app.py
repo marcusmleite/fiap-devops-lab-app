@@ -11,6 +11,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
 
+
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 DB_PATH = os.getenv("DATABASE", str(Path(tempfile.gettempdir()) / "fiap_devops_lab.db"))
 APP_PORT = int(os.getenv("PORT", "8000"))
