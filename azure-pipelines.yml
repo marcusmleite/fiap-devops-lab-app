@@ -11,8 +11,8 @@ variables:
   artifactName: 'fiap-devops-lab-app'
 
   # Para habilitar deploy no App Service, substitua os valores abaixo.
-  azureServiceConnection: 'CHANGE_ME_SERVICE_CONNECTION'
-  webAppName: 'CHANGE_ME_WEBAPP_NAME'
+  azureServiceConnection: 'sc-sc-fiap-azure-webapp'
+  webAppName: 'fiap-devops-lab-f1754'
 
 stages:
 
