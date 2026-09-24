@@ -52,6 +52,7 @@ def get_user(user_id):
         row = conn.execute("SELECT id, name, email FROM users WHERE id = ?", (user_id,)).fetchone()
     return row_to_dict(row) if row else None
 
+
 def create_user(name, email):
     init_db()
     name = (name or "").strip()
