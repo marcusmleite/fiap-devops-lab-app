@@ -4,21 +4,29 @@ import os
 import re
 import sqlite3
 import tempfile
+from contextlib import contextmanager
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, unquote, urlparse
+from urllib.parse import parse_qs, unquote, urlpars
+
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 DB_PATH = os.getenv("DATABASE", str(Path(tempfile.gettempdir()) / "fiap_devops_lab.db"))
 APP_PORT = int(os.getenv("PORT", "8000"))
 
 
+@contextmanager
 def get_connection():
     Path(DB_PATH).parent.mkdir(parents=True, exist_ok=True)
+
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
-    return conn
+
+    try:
+        yield conn
+    finally:
+        conn.close()
 
 
 def init_db():
