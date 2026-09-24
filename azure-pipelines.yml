@@ -1,0 +1,80 @@
+trigger:
+- main
+- develop
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  pythonVersion: '3.11'
+  artifactName: 'fiap-devops-lab-app'
+  # Para habilitar deploy no App Service, substitua os valores abaixo.
+  azureServiceConnection: 'CHANGE_ME_SERVICE_CONNECTION'
+  webAppName: 'CHANGE_ME_WEBAPP_NAME'
+
+stages:
+- stage: Build_Test
+  displayName: Build e Testes Automatizados
+  jobs:
+  - job: test
+    displayName: Executar testes Python
+    steps:
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '$(pythonVersion)'
+      displayName: 'Selecionar Python $(pythonVersion)'
+
+    - script: |
+        python --version
+        python -m py_compile app.py run_tests.py
+      displayName: 'Validar sintaxe'
+
+    - script: |
+        python run_tests.py
+      displayName: 'Executar testes automatizados'
+
+    - task: PublishTestResults@2
+      condition: succeededOrFailed()
+      inputs:
+        testResultsFormat: 'JUnit'
+        testResultsFiles: 'test-results/unittest.xml'
+        failTaskOnFailedTests: true
+      displayName: 'Publicar resultados dos testes'
+
+    - task: ArchiveFiles@2
+      inputs:
+        rootFolderOrFile: '$(System.DefaultWorkingDirectory)'
+        includeRootFolder: false
+        archiveType: 'zip'
+        archiveFile: '$(Build.ArtifactStagingDirectory)/$(artifactName).zip'
+        replaceExistingArchive: true
+      displayName: 'Gerar pacote da aplicação'
+
+    - publish: '$(Build.ArtifactStagingDirectory)/$(artifactName).zip'
+      artifact: '$(artifactName)'
+      displayName: 'Publicar artefato da aplicação'
+
+- stage: Deploy
+  displayName: Deploy no Azure App Service
+  dependsOn: Build_Test
+  condition: and(succeeded(), ne(variables['azureServiceConnection'], 'CHANGE_ME_SERVICE_CONNECTION'), ne(variables['webAppName'], 'CHANGE_ME_WEBAPP_NAME'))
+  jobs:
+  - deployment: deploy_app_service
+    displayName: Publicar aplicação
+    environment: dev
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: '$(artifactName)'
+
+          - task: AzureWebApp@1
+            inputs:
+              azureSubscription: '$(azureServiceConnection)'
+              appName: '$(webAppName)'
+              appType: 'webAppLinux'
+              package: '$(Pipeline.Workspace)/$(artifactName)/$(artifactName).zip'
+              runtimeStack: 'PYTHON|3.11'
+              startUpCommand: 'python app.py'
+            displayName: 'Deploy App Service Linux'
