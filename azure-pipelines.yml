@@ -1,6 +1,7 @@
 trigger:
-- main
-- develop
+  branches:
+    include:
+      - main
 
 pool:
   vmImage: ubuntu-latest
@@ -8,17 +9,25 @@ pool:
 variables:
   pythonVersion: '3.11'
   artifactName: 'fiap-devops-lab-app'
+
   # Para habilitar deploy no App Service, substitua os valores abaixo.
   azureServiceConnection: 'CHANGE_ME_SERVICE_CONNECTION'
   webAppName: 'CHANGE_ME_WEBAPP_NAME'
 
 stages:
+
+# =========================================================
+# BUILD E TESTES
+# =========================================================
 - stage: Build_Test
   displayName: Build e Testes Automatizados
+
   jobs:
   - job: test
     displayName: Executar testes Python
+
     steps:
+
     - task: UsePythonVersion@0
       inputs:
         versionSpec: '$(pythonVersion)'
@@ -26,6 +35,11 @@ stages:
 
     - script: |
         python --version
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+      displayName: 'Instalar dependências'
+
+    - script: |
         python -m py_compile app.py run_tests.py
       displayName: 'Validar sintaxe'
 
@@ -54,18 +68,34 @@ stages:
       artifact: '$(artifactName)'
       displayName: 'Publicar artefato da aplicação'
 
+
+# =========================================================
+# DEPLOY
+# =========================================================
 - stage: Deploy
   displayName: Deploy no Azure App Service
+
   dependsOn: Build_Test
-  condition: and(succeeded(), ne(variables['azureServiceConnection'], 'CHANGE_ME_SERVICE_CONNECTION'), ne(variables['webAppName'], 'CHANGE_ME_WEBAPP_NAME'))
+
+  condition: |
+    and(
+      succeeded(),
+      eq(variables['Build.SourceBranch'], 'refs/heads/main'),
+      ne(variables['azureServiceConnection'], 'CHANGE_ME_SERVICE_CONNECTION'),
+      ne(variables['webAppName'], 'CHANGE_ME_WEBAPP_NAME')
+    )
+
   jobs:
   - deployment: deploy_app_service
     displayName: Publicar aplicação
+
     environment: dev
+
     strategy:
       runOnce:
         deploy:
           steps:
+
           - download: current
             artifact: '$(artifactName)'
 
@@ -77,4 +107,5 @@ stages:
               package: '$(Pipeline.Workspace)/$(artifactName)/$(artifactName).zip'
               runtimeStack: 'PYTHON|3.11'
               startUpCommand: 'python app.py'
+
             displayName: 'Deploy App Service Linux'
